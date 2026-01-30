@@ -27,12 +27,34 @@ export default function Home() {
     setIsGenerating(true);
     setGeneratedImage(null);
 
-    const result = await generateImage(gender, style.prompt, uploadedImage || undefined);
+    try {
+      // If user uploaded an image, host it first to get a public URL
+      let imageUrl: string | undefined;
+      
+      if (uploadedImage) {
+        const uploadRes = await fetch("/api/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: uploadedImage }),
+        });
+        
+        if (uploadRes.ok) {
+          const { url } = await uploadRes.json();
+          imageUrl = url;
+          console.log("Image hosted at:", imageUrl);
+        }
+      }
 
-    if (result.success && result.imageUrl) {
-      setGeneratedImage(result.imageUrl);
-    } else {
-      setError(result.error || "Algo deu errado");
+      const result = await generateImage(gender, style.prompt, imageUrl);
+
+      if (result.success && result.imageUrl) {
+        setGeneratedImage(result.imageUrl);
+      } else {
+        setError(result.error || "Algo deu errado");
+      }
+    } catch (err) {
+      setError("Erro ao processar imagem");
+      console.error(err);
     }
 
     setIsGenerating(false);
